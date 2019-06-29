@@ -1,6 +1,4 @@
-StarGAN
+CycleGAN
 =====
-#StarGAN
-# CycleGAN
-# CycleGAN
-# CycleGAN
+#CycleGAN
+
