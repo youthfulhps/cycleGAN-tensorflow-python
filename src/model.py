@@ -29,6 +29,7 @@ class CycleGAN(object):
 
         self._gen_train_ops, self._dis_train_ops = [], []
         self.gen_c, self.dis_c = 64, 64
+        self.output_c_dim = 3
 
         self._build_net()
         self._init_assign_op()
@@ -61,13 +62,13 @@ class CycleGAN(object):
 
         self.identity_loss = l1_loss(y=self.real_A, y_hat=self.identity_A) + l1_loss(y=self.real_B, y_hat=self.identity_B)
 
-        self.lambda_cycle = tf.placeholder(tf.float32, None, name='lambda_cycle')
-        self.lambda_identity = tf.placeholder(tf.float32, None, name='lambda_identity')
+        #self.lambda_cycle = tf.placeholder(tf.float32, None, name='lambda_cycle')
+        #self.lambda_identity = tf.placeholder(tf.float32, None, name='lambda_identity')
 
         self.generator_loss_A2B = l2_loss(y=tf.ones_like(self.discrimination_B_fake),y_hat=self.discrimination_B_fake)
         self.generator_loss_B2A = l2_loss(y=tf.ones_like(self.discrimination_A_fake),y_hat=self.discrimination_A_fake)
 
-        self.generator_loss = self.generator_loss_A2B + self.generator_loss_B2A + (self.lambda_cycle * self.cycle_loss) + (self.lambda_identity * self.identity_loss)
+        self.generator_loss = self.generator_loss_A2B + self.generator_loss_B2A + (self.flags.lambda_cycle * self.cycle_loss) + (self.flags.lambda_identity * self.identity_loss)
 
         self.discrimination_A_real = self.discriminator(x = self.real_A, reuse=True, scope_name='discriminator_A')
         self.discrimination_B_real = self.discriminator(x = self.real_B, reuse=True, scope_name='discriminator_B')
@@ -151,31 +152,31 @@ class CycleGAN(object):
             return y + x
 
 
-        c0 = tf.pad(image, [[0, 0], [3, 3], [3, 3], [0, 0]], "REFLECT")
-        c1 = tf.nn.relu(instance_norm(conv2d(c0, options.gf_dim, 7, 1, padding='VALID', name='g_e1_c'), 'g_e1_bn'))
-        c2 = tf.nn.relu(instance_norm(conv2d(c1, options.gf_dim*2, 3, 2, name='g_e2_c'), 'g_e2_bn'))
-        c3 = tf.nn.relu(instance_norm(conv2d(c2, options.gf_dim*4, 3, 2, name='g_e3_c'), 'g_e3_bn'))
+        c0 = tf.pad(x, [[0, 0], [3, 3], [3, 3], [0, 0]], "REFLECT")
+        c1 = tf.nn.relu(instance_norm(conv2d(c0, self.gen_c, 7, 1, padding='VALID', name='g_e1_c'), 'g_e1_bn'))
+        c2 = tf.nn.relu(instance_norm(conv2d(c1, self.gen_c*2, 3, 2, name='g_e2_c'), 'g_e2_bn'))
+        c3 = tf.nn.relu(instance_norm(conv2d(c2, self.gen_c*4, 3, 2, name='g_e3_c'), 'g_e3_bn'))
         # define G network with 9 resnet blocks
-        r1 = residule_block(c3, options.gf_dim*4, name='g_r1')
-        r2 = residule_block(r1, options.gf_dim*4, name='g_r2')
-        r3 = residule_block(r2, options.gf_dim*4, name='g_r3')
-        r4 = residule_block(r3, options.gf_dim*4, name='g_r4')
-        r5 = residule_block(r4, options.gf_dim*4, name='g_r5')
-        r6 = residule_block(r5, options.gf_dim*4, name='g_r6')
-        r7 = residule_block(r6, options.gf_dim*4, name='g_r7')
-        r8 = residule_block(r7, options.gf_dim*4, name='g_r8')
-        r9 = residule_block(r8, options.gf_dim*4, name='g_r9')
+        r1 = residule_block(c3, self.gen_c*4, name='g_r1')
+        r2 = residule_block(r1, self.gen_c*4, name='g_r2')
+        r3 = residule_block(r2, self.gen_c*4, name='g_r3')
+        r4 = residule_block(r3, self.gen_c*4, name='g_r4')
+        r5 = residule_block(r4, self.gen_c*4, name='g_r5')
+        r6 = residule_block(r5, self.gen_c*4, name='g_r6')
+        r7 = residule_block(r6, self.gen_c*4, name='g_r7')
+        r8 = residule_block(r7, self.gen_c*4, name='g_r8')
+        r9 = residule_block(r8, self.gen_c*4, name='g_r9')
 
-        d1 = deconv2d(r9, options.gf_dim*2, 3, 2, name='g_d1_dc')
+        d1 = deconv2d(r9, self.gen_c*2, 3, 2, name='g_d1_dc')
         d1 = tf.nn.relu(instance_norm(d1, 'g_d1_bn'))
-        d2 = deconv2d(d1, options.gf_dim, 3, 2, name='g_d2_dc')
+        d2 = deconv2d(d1, self.gen_c, 3, 2, name='g_d2_dc')
         d2 = tf.nn.relu(instance_norm(d2, 'g_d2_bn'))
         d2 = tf.pad(d2, [[0, 0], [3, 3], [3, 3], [0, 0]], "REFLECT")
         pred = tf.nn.tanh(conv2d(d2, options.output_c_dim, 7, 1, padding='VALID', name='g_pred_c'))
 
         return pred
 
-    def discriminator(image, options, reuse=False, name="discriminator"):
+    def discriminator(self, x, options, reuse=False, name="discriminator"):
 
         with tf.variable_scope(name):
             # image is 256 x 256 x input_c_dim
@@ -184,14 +185,76 @@ class CycleGAN(object):
             else:
                 assert tf.get_variable_scope().reuse is False
 
-            h0 = lrelu(conv2d(image, options.df_dim, name='d_h0_conv'))
+            h0 = lrelu(conv2d(x, self.dis_c, name='d_h0_conv'))
         # h0 is (128 x 128 x self.df_dim)
-            h1 = lrelu(instance_norm(conv2d(h0, options.df_dim*2, name='d_h1_conv'), 'd_bn1'))
+            h1 = lrelu(instance_norm(conv2d(h0, self.dis_c*2, name='d_h1_conv'), 'd_bn1'))
         # h1 is (64 x 64 x self.df_dim*2)
-            h2 = lrelu(instance_norm(conv2d(h1, options.df_dim*4, name='d_h2_conv'), 'd_bn2'))
+            h2 = lrelu(instance_norm(conv2d(h1, self.dis_c*4, name='d_h2_conv'), 'd_bn2'))
         # h2 is (32x 32 x self.df_dim*4)
-            h3 = lrelu(instance_norm(conv2d(h2, options.df_dim*8, s=1, name='d_h3_conv'), 'd_bn3'))
+            h3 = lrelu(instance_norm(conv2d(h2, self.dis_c*8, s=1, name='d_h3_conv'), 'd_bn3'))
         # h3 is (32 x 32 x self.df_dim*8)
             h4 = conv2d(h3, 1, s=1, name='d_h3_pred')
         # h4 is (32 x 32 x 1)
             return h4
+
+
+def train(self, input_A, input_B, lambda_cycle, lambda_identity, generator_learning_rate, discriminator_learning_rate):
+
+        generation_A, generation_B, generator_loss, _, generator_summaries = self.sess.run(
+            [self.generation_A, self.generation_B, self.generator_loss, self.generator_optimizer, self.generator_summaries], \
+            feed_dict = {self.lambda_cycle: lambda_cycle, self.lambda_identity: lambda_identity, self.input_A_real: input_A, self.input_B_real: input_B, self.generator_learning_rate: generator_learning_rate})
+
+        self.writer.add_summary(generator_summaries, self.train_step)
+
+        discriminator_loss, _, discriminator_summaries = self.sess.run([self.discriminator_loss, self.discriminator_optimizer, self.discriminator_summaries], \
+            feed_dict = {self.input_A_real: input_A, self.input_B_real: input_B, self.discriminator_learning_rate: discriminator_learning_rate, self.input_A_fake: generation_A, self.input_B_fake: generation_B})
+
+        self.writer.add_summary(discriminator_summaries, self.train_step)
+
+        self.train_step += 1
+
+        return generator_loss, discriminator_loss
+
+
+def train(self, real_A, real_B, iter_time):
+
+    fake_A, fake_B, generator_loss, _, generator_summaries = self.sess.run([self.fake_A, self.fake_B, self.generator_loss, self.generator_optimizer, self.generator_summaries], \
+        feed_dict = {self.real_A: real_A, self.real_B: real_B})
+
+    self.writer.add_summary(generator_summaries, self.iter_time)
+
+    discriminator_loss, _, discriminator_summaries = self.sess.run([self.discriminator_loss, self.discriminator_optimizer, self.discriminator_optimizer], \
+        feed_dict = {self.real_A:real_A, self.real_B:real_B, self.fake_A:fake_A, self.fake_B:fake_B})
+
+    self.writer.add_summary(discriminator_summaries, self.iter_time)
+
+
+
+    return generator_loss, discriminator_loss
+
+def test(self, inputs, direction):
+    if direction =='A2B':
+        generation = self.sess.run(self.generation_B_test, feed_dict={self.test_A:inputs})
+    elif direction =='B2A':
+        generation = self.sess.run(self.generation_B_test, feed_dict={self.test_B:inputs})
+    else:
+        raise Exception('Conversion direction must be specified.')
+
+    return generation
+
+'''
+def measure_assign(self,psnr, ssim, score, iter_time):
+        feed_dict = {self.psnr_placeholder:psnr, self.ssim_placeholder:ssim}
+
+        self.sess.run(self.measure_assign_op, feed_dict=feed_dict)
+
+        summary = self.sess.run(self.measure_summary)
+        self.writer.add_summary(summary, iter_time)
+    #best score assign, Use it if you want to save the model when the score is the best.
+
+def best_score_assign(self, score):
+    self.sess.run(self.score_assign_op, feed_dict={self.score_placeholder: score})
+    #sample image
+def sample_imgs(self, x_data):
+    return self.sess.run(self.g_samples, feed_dict={self.X: x_data})
+'''

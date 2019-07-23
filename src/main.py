@@ -5,6 +5,9 @@ from sa_convert import Conversion
 
 FLAGS = tf.flags.FLAGS
 
+
+tf.flags.DEFINE_integer('lambda_cycle', 1, 'weight of cycle loss, default=1')
+tf.flags.DEFINE_integer('lambda_identity', 1, 'weight of identity loss, default=1')
 tf.flags.DEFINE_integer('train_interval', 1, 'training interval between discriminator and generator, default: 1')
 tf.flags.DEFINE_integer('ratio_gan2seg', 20, 'ratio of gan loss to seg loss, default: 10')
 tf.flags.DEFINE_string('discriminator', 'image', 'type of discriminator [pixel|patch1|patch2|image],default: image')

@@ -14,12 +14,12 @@ class Dataset(object):
         self.test_dir = '/Users/Yubyeongho/Desktop/MRI_dataset/test'
 
         self.num_train = 0
-        self.num_val = 0
+        #self.num_val = 0
         self.num_test = 0
 
         self._read_data()
         print("num of training images:{}".format(self.num_train))
-        print("num of validation images:{}".format(self.num_val))
+        #print("num of validation images:{}".format(self.num_val))
         print("num of test images:{}".format(self.num_test))
 
     def _read_data(self):
