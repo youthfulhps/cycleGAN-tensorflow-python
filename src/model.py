@@ -32,7 +32,7 @@ class CycleGAN(object):
         self.output_c_dim = 3
 
         self._build_net()
-        self._init_assign_op()
+        #self._init_assign_op()
 
         print('Initialized CycleGAN SUCCESS!\n')
 
@@ -101,6 +101,7 @@ class CycleGAN(object):
         self.gen_ops = [self.generator_op] + self._gen_train_ops
         self.gen_optim = tf.group(*self.gen_ops)
 
+'''
     def _init_assign_op(self):
 
         self.psnr_placeholder = tf.placeholder(tf.float32, name='psnr_placeholder')
@@ -130,7 +131,7 @@ class CycleGAN(object):
         self.d_loss_summary = tf.summary.scalar('discriminator_loss', self.discriminator_loss)
 
         self.measure_summary = tf.summary.merge([psnr_summ, ssim_summ, score_summ])
-
+'''
 
     def generator(self, x, reuse=False, scope_name='generator_'):
         with tf.variable_scope(scope_name) as scope:
@@ -198,24 +199,6 @@ class CycleGAN(object):
             return h4
 
 
-def train(self, input_A, input_B, lambda_cycle, lambda_identity, generator_learning_rate, discriminator_learning_rate):
-
-        generation_A, generation_B, generator_loss, _, generator_summaries = self.sess.run(
-            [self.generation_A, self.generation_B, self.generator_loss, self.generator_optimizer, self.generator_summaries], \
-            feed_dict = {self.lambda_cycle: lambda_cycle, self.lambda_identity: lambda_identity, self.input_A_real: input_A, self.input_B_real: input_B, self.generator_learning_rate: generator_learning_rate})
-
-        self.writer.add_summary(generator_summaries, self.train_step)
-
-        discriminator_loss, _, discriminator_summaries = self.sess.run([self.discriminator_loss, self.discriminator_optimizer, self.discriminator_summaries], \
-            feed_dict = {self.input_A_real: input_A, self.input_B_real: input_B, self.discriminator_learning_rate: discriminator_learning_rate, self.input_A_fake: generation_A, self.input_B_fake: generation_B})
-
-        self.writer.add_summary(discriminator_summaries, self.train_step)
-
-        self.train_step += 1
-
-        return generator_loss, discriminator_loss
-
-
 def train(self, real_A, real_B, iter_time):
 
     fake_A, fake_B, generator_loss, _, generator_summaries = self.sess.run([self.fake_A, self.fake_B, self.generator_loss, self.generator_optimizer, self.generator_summaries], \
@@ -227,8 +210,6 @@ def train(self, real_A, real_B, iter_time):
         feed_dict = {self.real_A:real_A, self.real_B:real_B, self.fake_A:fake_A, self.fake_B:fake_B})
 
     self.writer.add_summary(discriminator_summaries, self.iter_time)
-
-
 
     return generator_loss, discriminator_loss
 
@@ -255,6 +236,8 @@ def measure_assign(self,psnr, ssim, score, iter_time):
 def best_score_assign(self, score):
     self.sess.run(self.score_assign_op, feed_dict={self.score_placeholder: score})
     #sample image
+
+
 def sample_imgs(self, x_data):
     return self.sess.run(self.g_samples, feed_dict={self.X: x_data})
 '''

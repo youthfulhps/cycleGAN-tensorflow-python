@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from scipy.ndimage import rotate
-from skimage.measure import compare_ssim, compare_psnr
+#from skimage.measure import compare_ssim, compare_psnr
 
 #skleran psnr, ssim
 
@@ -138,7 +138,7 @@ def get_train_batch(train_img_files, train_label_files, train_indices):
 
     return input_imgs, label_imgs
 
-
+'''
 def compare_ssim_(generated_img, label_img):
     ssim = compare_ssim(generated_img, label_img)
     return ssim
@@ -146,6 +146,8 @@ def compare_ssim_(generated_img, label_img):
 def compare_psnr_(generated_img, label_img):
     psnr = compare_psnr(generated_img, label_img)
     return psnr
+'''
+
 
 def print_metrics(itr, kargs):
     print("*** Iteration {}===>".format(itr))
