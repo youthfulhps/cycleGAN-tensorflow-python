@@ -42,3 +42,5 @@ class Dataset(object):
         train_A, train_B = utils.get_train_batch(self.train_A_files, sefl.train_B_files, train_indices.astype(np.int32))
 
         return train_A, train_B
+
+    
